@@ -34,11 +34,6 @@ import org.fog.utils.FogUtils;
 import org.fog.utils.TimeKeeper;
 import org.fog.utils.distribution.DeterministicDistribution;
 
-/**
- * Simulation setup for case study 1 - EEG Beam Tractor Game
- * @author Harshit Gupta
- *
- */
 public class VRLG_DCNS_APPS {
 	static List<FogDevice> fogDevices = new ArrayList<FogDevice>();
 	static List<FogDevice> mobiles = new ArrayList<FogDevice>();
@@ -100,16 +95,20 @@ public class VRLG_DCNS_APPS {
 			ModuleMapping moduleMapping_1 = ModuleMapping.createModuleMapping(); // initializing a module mapping
 			
 			moduleMapping_0.addModuleToDevice("coordinator", "cloud"); // fixing all instances of the Connector module to the Cloud
-			moduleMapping_0.addModuleToDevice("concentration_calculator", "cloud"); // fixing all instances of the Concentration Calculator module to the Cloud
-
 			moduleMapping_1.addModuleToDevice("user_interface", "cloud"); // fixing all instances of the Connector module to the Cloud
-			moduleMapping_1.addModuleToDevice("object_detector", "cloud"); // placing all instances of Object Detector module in the Cloud
-			moduleMapping_1.addModuleToDevice("object_tracker", "cloud"); // placing all instances of Object Tracker module in the Cloud
 
 			for(FogDevice device : fogDevices){
-				if(device.getName().startsWith("m")){
+				if(device.getName().startsWith("m-V")){
 					moduleMapping_0.addModuleToDevice("client", device.getName());  // fixing all instances of the Client module to the Smartphones
-					moduleMapping_1.addModuleToDevice("motion_detector", device.getName());  // fixing all instances of the Client module to the Smartphones
+					// fixing all instances of the Client module to the Smartphones
+				}
+				if(device.getName().startsWith("m-D")){
+					moduleMapping_1.addModuleToDevice("motion_detector", device.getName());  
+				}
+				if(device.getName().startsWith("d")){
+				moduleMapping_0.addModuleToDevice("concentration_calculator", device.getName()); // fixing all instances of the Concentration Calculator module to the Cloud
+				moduleMapping_1.addModuleToDevice("object_detector", device.getName()); // placing all instances of Object Detector module in the Cloud
+				moduleMapping_1.addModuleToDevice("object_tracker", device.getName()); // placing all instances of Object Tracker module in the Cloud
 				}
 			}
 			
@@ -141,7 +140,7 @@ public class VRLG_DCNS_APPS {
 				Actuator display = new Actuator("a-"+id, userId, appId, "DISPLAY");
 				actuators.add(display);
 				eegSensor.setGatewayDeviceId(mobile.getId());
-				eegSensor.setLatency(6.0);  // latency of connection between EEG sensors and the parent Smartphone is 6 ms
+				eegSensor.setLatency(1.0);  // latency of connection between EEG sensors and the parent Smartphone is 6 ms
 				display.setGatewayDeviceId(mobile.getId());
 				display.setLatency(1.0);  // latency of connection between Display actuator and the parent Smartphone is 1 ms	
 			}
@@ -172,7 +171,7 @@ public class VRLG_DCNS_APPS {
 	private static void createIoTNetworktopology() {
 		FogDevice cloud = createFogDevice("cloud", 44800, 40000, 100, 10000, 0, 0.01, 16*103, 16*83.25); // creates the fog device Cloud at the apex of the hierarchy with level=0
 		cloud.setParentId(-1);
-		FogDevice gateway = createFogDevice("RSFC-Gateway", 2800, 4000, 10000, 10000, 1, 0.0, 107.339, 83.4333); // creates the fog device Proxy Server (level=1)
+		FogDevice gateway = createFogDevice("d-RSFC-Gateway", 2800, 4000, 10000, 10000, 1, 0.0, 107.339, 83.4333); // creates the fog device Proxy Server (level=1)
 		gateway.setParentId(cloud.getId()); // setting Cloud as parent of the Proxy Server
 		gateway.setUplinkLatency(100); // latency of connection from Proxy Server to the Cloud is 100 ms
 		
@@ -196,7 +195,7 @@ public class VRLG_DCNS_APPS {
 		FogDevice fogdevice = createFogDevice("d-"+id, 2800, 4000, 10000, 10000, 1, 0.0, 107.339, 83.4333);
 		fogDevices.add(fogdevice);
 		fogdevice.setParentId(parentId);
-		fogdevice.setUplinkLatency(1); // latency of connection between gateways and proxy server is 1 ms
+		fogdevice.setUplinkLatency(0); // latency of connection between gateways and proxy server is 1 ms
 		return fogdevice;
 	}	
 	
@@ -205,7 +204,7 @@ public class VRLG_DCNS_APPS {
 		FogDevice mobile = createFogDevice("m-"+id, 1000, 1000, 10000, 270, 3, 0, 87.53, 82.44);
 		mobile.setParentId(parentId);
 		mobiles.add(mobile);
-		mobile.setUplinkLatency(2); // latency of connection between the smartphone and proxy server is 4 ms
+		mobile.setUplinkLatency(4); // latency of connection between the smartphone and proxy server is 4 ms
 		fogDevices.add(mobile);
 		return mobile;
 	}
@@ -297,13 +296,10 @@ public class VRLG_DCNS_APPS {
 		/*
 		 * Connecting the application modules (vertices) in the application model (directed graph) with edges
 		 */
-		if(EEG_TRANSMISSION_TIME==10)
-			application.addAppEdge("EEG", "client", 2000, 500, "EEG", Tuple.UP, AppEdge.SENSOR); // adding edge from EEG (sensor) to Client module carrying tuples of type EEG
-		else
-			application.addAppEdge("EEG", "client", 3000, 500, "EEG", Tuple.UP, AppEdge.SENSOR);
-		application.addAppEdge("client", "concentration_calculator", 3500, 500, "_SENSOR", Tuple.UP, AppEdge.MODULE); // adding edge from Client to Concentration Calculator module carrying tuples of type _SENSOR
-		application.addAppEdge("concentration_calculator", "coordinator", 100, 1000, 1000, "PLAYER_GAME_STATE", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
-		application.addAppEdge("concentration_calculator", "client", 14, 500, "CONCENTRATION", Tuple.DOWN, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
+		application.addAppEdge("EEG", "client", 1000, 500, "EEG", Tuple.UP, AppEdge.SENSOR);
+		application.addAppEdge("client", "concentration_calculator", 1000, 500, "_SENSOR", Tuple.UP, AppEdge.MODULE); // adding edge from Client to Concentration Calculator module carrying tuples of type _SENSOR
+		application.addAppEdge("concentration_calculator", "coordinator", 100, 500, 500, "PLAYER_GAME_STATE", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
+		application.addAppEdge("concentration_calculator", "client", 20, 500, "CONCENTRATION", Tuple.DOWN, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
 		application.addAppEdge("coordinator", "client", 100, 28, 1000, "GLOBAL_GAME_STATE", Tuple.DOWN, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Connector to Client module carrying tuples of type GLOBAL_GAME_STATE
 		application.addAppEdge("client", "DISPLAY", 500, 500, "SELF_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type SELF_STATE_UPDATE
 		application.addAppEdge("client", "DISPLAY", 500, 500, "GLOBAL_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type GLOBAL_STATE_UPDATE
@@ -348,8 +344,8 @@ public class VRLG_DCNS_APPS {
 		 */
 		application.addAppEdge("CAMERA", "motion_detector", 1000, 500, "CAMERA", Tuple.UP, AppEdge.SENSOR); // adding edge from EEG (sensor) to Client module carrying tuples of type EEG
 		application.addAppEdge("motion_detector", "object_detector", 1000, 500, "_SENSOR_1", Tuple.UP, AppEdge.MODULE); // adding edge from Client to Concentration Calculator module carrying tuples of type _SENSOR
-		application.addAppEdge("object_detector", "object_tracker", 100, 1000, 1000, "OBJID", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
-		application.addAppEdge("object_tracker", "user_interface", 14, 500, "DISPLAY1", Tuple.DOWN, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
+		application.addAppEdge("object_detector", "object_tracker", 100, 500, 500, "OBJID", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
+		application.addAppEdge("object_tracker", "user_interface", 100, 500, "DISPLAY1", Tuple.UP, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
 		application.addAppEdge("object_tracker", "PTZ_CONTROL", 100, 500, "PTZ_PARAM", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type SELF_STATE_UPDATE
 		
 		/*
