@@ -13,138 +13,126 @@ import org.cloudbus.cloudsim.core.predicates.Predicate;
 public class FogSim extends CloudSim {
 	
     protected static long iteration_count = 0;  //by manju Manju
+    public static  int SheduleMethod = 0;  // 0->FCFS,1->PS,2->WOA
+    
     
 	protected static void update_futureQueByShaduling()
 	{
-//		if (iteration_count <2) System.out.println("update_futureQue-FogSim");
 		int dest, src;
 		SimEntity entity;
 		int entitys_size = entities.size();
-		class fogSheduled {
-			public int id;
-			public int updaeCnt;
-			public fogSheduled() {updaeCnt = 0; }
-		};
-		
-		fogSheduled [] fogSheduledevises = new fogSheduled[50] ;
+		int [] fogSheduledevises = new int [50] ;
 		int dFogCount	 = 0;
 		
 		//d-R:{i} is the names of fogdevises		
 		for (int i = 0; i< entitys_size; i++)
 		{   		    
 			entity = entities.get(i);
-			if (entity.getName().startsWith("d")) {
-				fogSheduledevises[dFogCount] = new fogSheduled();
-				fogSheduledevises[dFogCount].id = entity.getId();
-				fogSheduledevises[dFogCount].updaeCnt = 0;
+			if (entity.getName().startsWith("d")) {			
+				fogSheduledevises[dFogCount] = entity.getId();
 				dFogCount ++;
 			}
-			if (iteration_count< 1) 
-				System.out.println(entity.getId() + " :Name: " + entity.getName());
 		}		
 
 		Iterator<SimEvent> fit = future.iterator();
 
 		int nexttaskaulter = 0;	
-		int duplicate_cont = 0;		
-		SimEvent e1 = null;
 		
 		while (fit.hasNext()) {
 			SimEvent e = fit.next();
-			dest = e.getDestination();
-			
-			if (dest == fogSheduledevises[0].id) {
-				
+			dest = e.getDestination();			
+			if (dest == fogSheduledevises[0]) {				
 				  int tag = e.getTag();
-				  switch (tag) {			  
-//					  case 51: 
-					  case 68:
-						  e1 = (SimEvent)
-						  e.clone(); 
+				  switch (tag) {			   
+					  case 51:
+						  e.setDestination(fogSheduledevises[nexttaskaulter]);
 						  break; 
-					  case 62:
-						  e.setDestination(fogSheduledevises[nexttaskaulter].id);
-						  fogSheduledevises[nexttaskaulter].updaeCnt ++; 
-						  break; 
-					  case 56:
-						  e.setDestination(fogSheduledevises[nexttaskaulter].id);
-						  fogSheduledevises[nexttaskaulter].updaeCnt ++; 
-						  break; 
-					  case 52:
-						  e.setDestination(fogSheduledevises[nexttaskaulter].id);
-						  fogSheduledevises[nexttaskaulter].updaeCnt ++; 
-						  break; 
-					  case 74: 
-						  e1 =  (SimEvent) e.clone(); e.setDestination(fogSheduledevises[nexttaskaulter].id);
-						  fogSheduledevises[nexttaskaulter].updaeCnt ++; 
-						  break;
-				  } 
-				  
-				  if (iteration_count ==500) System.out.println("Old Dist:"+ dest +" New Dest:"+e.getDestination()+" getTag():"+e.getTag() +" getType():"+e.getType());
-				  
-				  if (3 == fogSheduledevises[nexttaskaulter].updaeCnt) {
-					  fogSheduledevises[nexttaskaulter].updaeCnt = 0; nexttaskaulter ++; 
-					  if  (duplicate_cont <dFogCount) duplicate_cont++; 
-					 }
+				  } 				  
+//				  System.out.println("Dist:"+ e.getDestination() +" source:"+e.getSource()+" getTag():"+e.getTag() +" getType():"+e.getType());
+				  nexttaskaulter ++; 
+				  if (nexttaskaulter == dFogCount) { nexttaskaulter = 0; }
 				 			
 			}
-			
-			if (nexttaskaulter == dFogCount) { nexttaskaulter = 0; }
 		}
-		
-		if ( e1 != null) {
-			for (int indx = 1 ;indx <  dFogCount ;indx++) {
-				SimEvent e2 = (SimEvent) e1.clone();
-				//SimEvent e1 = new SimEvent(SimEvent.SEND, clock + delay, src, dest, tag, data);
-				e2.setDestination(fogSheduledevises[indx].id);
-				future.addEvent(e2);
-			}
-		}
-
 	}
-
+	
 	public static boolean runClockTick() {
 		SimEntity ent;
-		boolean queue_empty;
+		boolean queue_empty = false ;
 		
 		int entities_size = entities.size();
 		
-		if (iteration_count< 20) System.out.println( "=================Sarted Slot:" + iteration_count); 
+//		if (iteration_count< 50) 
+//			System.out.println( "=================Sarted Slot:" + iteration_count); 
 		
 		for (int i = 0; i < entities_size; i++ ) {
 			ent = entities.get(i);
 			if (ent.getState() == SimEntity.RUNNABLE) {
-				if (iteration_count ==0) System.out.println( "Run Device:"+ ent.getName()); 
 				ent.run();
 			}
 
+		}		
+		//resourse sheduling WOS
+		switch (SheduleMethod) {
+		case 0: //FCFS
+			update_futureQueByShaduling();
+			queue_empty = executeAllTasks();
+			break;
+		case 1:
+			update_futureQueByShaduling();
+			queue_empty = executeHighPriorityTasks();
+//			queue_empty= executeLowPriorityTasks();
+			break;			
+		case 2:
+			update_futureQueByShaduling();
+			System.out.println("WO Algorithem Not Ready");
+			System.exit(0);
+			break;
 		}
 		
-		//resourse sheduling WOS
-		update_futureQueByShaduling();	
-		
-		if (iteration_count < 20) 
-			System.out.println( "Sheduling tasks for slot ("+ iteration_count + ") Completed...NoTasks:"+future.size());
-
 		// If there are more future events then deal with them
-		int excont = 1;
+		return queue_empty;
+	}
+	public static boolean executeHighPriorityTasks (){
 		
+		boolean queue_empty;
 		if (future.size() > 0) {
-			List<SimEvent> toRemove = new ArrayList<SimEvent>();
+			
+			List<SimEvent> toRemove = new ArrayList<SimEvent>();		
 			Iterator<SimEvent> fit = future.iterator();
-			queue_empty = false;
+			
+			queue_empty = false;		
 			SimEvent first = fit.next();
-			processEvent(first);
-			future.remove(first);
-			fit = future.iterator();
-
+			SimEntity ent = entities.get( first.getSource());			
+			if (ent.getName().startsWith("m-V")) {
+				processEvent(first);
+				future.remove(first);
+			}			
+			
+			fit = future.iterator();	
 			// Check if next events are at same time...
 			boolean trymore = fit.hasNext();
 			while (trymore) {
 				SimEvent next = fit.next();
-				if (next.eventTime() == first.eventTime()) {					
-//					System.out.println(next); 
-					excont++;
+				ent = entities.get( next.getSource());				
+				if (next.eventTime() == first.eventTime()) {
+					if (ent.getName().startsWith("m-V")) {
+						processEvent(next);
+						toRemove.add(next);
+					} 
+					trymore = fit.hasNext();
+				} else {
+					trymore = false;
+				}
+			}
+			future.removeAll(toRemove);			
+			toRemove.clear();
+
+			Iterator<SimEvent> fit2 = future.iterator();
+			trymore = fit2.hasNext();
+			while (trymore) {
+				SimEvent next = fit2.next();
+				if (next.eventTime() == first.eventTime()) {					 
 					processEvent(next);
 					toRemove.add(next);
 					trymore = fit.hasNext();
@@ -153,13 +141,47 @@ public class FogSim extends CloudSim {
 				}
 			}
 			future.removeAll(toRemove);
-			if (iteration_count <20) System.out.println("Ex Cont:"+excont);
 
 		} else {
 			queue_empty = true;
 			running = false;
 		}
+		// If there are more future events then deal with them
+		return queue_empty;
+	}
+	
 
+	public static boolean executeAllTasks (){
+		
+		boolean queue_empty;
+		if (future.size() > 0) {
+			List<SimEvent> toRemove = new ArrayList<SimEvent>();
+			Iterator<SimEvent> fit = future.iterator();
+			queue_empty = false;
+			
+			SimEvent first = fit.next();
+			processEvent(first);
+			future.remove(first);
+			fit = future.iterator();
+	
+			// Check if next events are at same time...
+			boolean trymore = fit.hasNext();
+			while (trymore) {
+				SimEvent next = fit.next();
+				if (next.eventTime() == first.eventTime()) {					 
+					processEvent(next);
+					toRemove.add(next);
+					trymore = fit.hasNext();
+				} else {
+					trymore = false;
+				}
+			}
+			future.removeAll(toRemove);
+		} else {
+			queue_empty = true;
+			running = false;
+		}
+		// If there are more future events then deal with them
 		return queue_empty;
 	}
 	
@@ -224,7 +246,7 @@ public class FogSim extends CloudSim {
 	public static double startSimulation() throws NullPointerException {
 	
 		try {
-			System.out.println("FogSim started");
+			System.out.println("===FogSim started====");
 			double clock = run();
 
 			// reset all static variables
@@ -243,7 +265,6 @@ public class FogSim extends CloudSim {
 	}
 	
 	public static double run() {
-		System.out.println("Fog Sim run() started");
 		if (!running) {
 			runStart();
 		}
@@ -252,7 +273,7 @@ public class FogSim extends CloudSim {
 			if (runClockTick() || abruptTerminate) {
 				break;
 			}
-
+			
 			// this block allows termination of simulation at a specific time
 			if (terminateAt > 0.0 && clock >= terminateAt) {
 				terminateSimulation();

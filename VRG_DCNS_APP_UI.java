@@ -46,7 +46,7 @@ public class VRG_DCNS_APP_UI {
 	static List<Actuator> actuators = new ArrayList<Actuator>();
 	
 	static int numFogResources = 3; //it should be always > than or =  to 1
-	static int numOfEdgeDvises = 4;
+	static int numOfEdgeDvises = 6;
 	static double EEG_TRANSMISSION_TIME = 5;
 	
     public static void main(String[] args) {
@@ -73,7 +73,7 @@ public class VRG_DCNS_APP_UI {
       jl.setBounds(30, 50, 120, 80);
       cp.add(jl);
       
-      JTextField ed = new JTextField("4", 5);
+      JTextField ed = new JTextField("6", 5);
       ed.setEditable(true);
       ed.setHorizontalAlignment(JTextField.RIGHT);
       ed.setBounds(30, 100, 120, 80);
@@ -149,7 +149,7 @@ public class VRG_DCNS_APP_UI {
 			createIoTNetworktopology();			
 			createEdgeDevicesVRG(broker0.getId(), appId0);
 			createEdgeDevicesDCNS(broker1.getId(), appId1);
-			
+/*			
 			System.out.println("==Devices==");
 			for(FogDevice device : fogDevices) {
 				System.out.println(device.getName() +" (" + device.getHost().getTotalMips() + ")");				
@@ -166,7 +166,7 @@ public class VRG_DCNS_APP_UI {
 			for(Actuator device : actuators) {
 				System.out.println(device.getName());				
 			}
-						
+*/						
 			ModuleMapping moduleMapping_0 = ModuleMapping.createModuleMapping(); // initializing a module mapping
 			ModuleMapping moduleMapping_1 = ModuleMapping.createModuleMapping(); // initializing a module mapping
 			
@@ -271,7 +271,7 @@ public class VRG_DCNS_APP_UI {
 	}
 
 	private static FogDevice addFogResourcess(String id, int parentId){
-		FogDevice fogdevice = createFogDevice("d-"+id, 2800, 4000, 10000, 10000, 2, 0.0, 107.339, 83.4333);
+		FogDevice fogdevice = createFogResources("d-"+id, 2800, 4000, 10000, 10000, 2, 0.0, 107.339, 83.4333);
 		fogDevices.add(fogdevice);
 		fogdevice.setParentId(parentId);
 		fogdevice.setUplinkLatency(0); // latency of connection between gateways and proxy server is 1 ms
@@ -306,6 +306,60 @@ public class VRG_DCNS_APP_UI {
 	 * @param idlePower
 	 * @return
 	 */
+	
+	private static FogResource createFogResources(String nodeName, long mips,
+			int ram, long upBw, long downBw, int level, double ratePerMips, double busyPower, double idlePower) {
+		
+		List<Pe> peList = new ArrayList<Pe>();
+
+		// 3. Create PEs and add these into a list.
+		peList.add(new Pe(0, new PeProvisionerOverbooking(mips))); // need to store Pe id and MIPS Rating
+
+		int hostId = FogUtils.generateEntityId();
+		long storage = 1000000; // host storage
+		int bw = 10000;
+
+		PowerHost host = new PowerHost(
+				hostId,
+				new RamProvisionerSimple(ram),
+				new BwProvisionerOverbooking(bw),
+				storage,
+				peList,
+				new StreamOperatorScheduler(peList),
+				new FogLinearPowerModel(busyPower, idlePower)
+			);
+
+		List<Host> hostList = new ArrayList<Host>();
+		hostList.add(host);
+
+		String arch = "x86"; // system architecture
+		String os = "Linux"; // operating system
+		String vmm = "Xen";
+		double time_zone = 10.0; // time zone this resource located
+		double cost = 3.0; // the cost of using processing in this resource
+		double costPerMem = 0.05; // the cost of using memory in this resource
+		double costPerStorage = 0.001; // the cost of using storage in this
+										// resource
+		double costPerBw = 0.0; // the cost of using bw in this resource
+		LinkedList<Storage> storageList = new LinkedList<Storage>(); // we are not adding SAN
+													// devices by now
+
+		FogDeviceCharacteristics characteristics = new FogDeviceCharacteristics(
+				arch, os, vmm, host, time_zone, cost, costPerMem,
+				costPerStorage, costPerBw);
+
+		FogResource fogdevice = null;
+		try {
+			fogdevice = new FogResource(nodeName, characteristics, 
+					new AppModuleAllocationPolicy(hostList), storageList, 10, upBw, downBw, 0, ratePerMips);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		fogdevice.setLevel(level);
+		return fogdevice;
+	}
+
 	private static FogDevice createFogDevice(String nodeName, long mips,
 			int ram, long upBw, long downBw, int level, double ratePerMips, double busyPower, double idlePower) {
 		
@@ -382,11 +436,11 @@ public class VRG_DCNS_APP_UI {
 		 */
 		application.addAppEdge("EEG", "client", 1000, 500, "EEG", Tuple.UP, AppEdge.SENSOR);
 		application.addAppEdge("client", "concentration_calculator", 1000, 500, "_SENSOR", Tuple.UP, AppEdge.MODULE); // adding edge from Client to Concentration Calculator module carrying tuples of type _SENSOR
-		application.addAppEdge("concentration_calculator", "coordinator", 500, 500, "PLAYER_GAME_STATE", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
-		application.addAppEdge("concentration_calculator", "client", 20, 500, "CONCENTRATION", Tuple.DOWN, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
-		application.addAppEdge("coordinator", "client",  28, 1000, "GLOBAL_GAME_STATE", Tuple.DOWN, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Connector to Client module carrying tuples of type GLOBAL_GAME_STATE
-		application.addAppEdge("client", "DISPLAY", 500, 500, "SELF_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type SELF_STATE_UPDATE
-		application.addAppEdge("client", "DISPLAY", 500, 500, "GLOBAL_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type GLOBAL_STATE_UPDATE
+		application.addAppEdge("concentration_calculator", "coordinator", 20, 100, "PLAYER_GAME_STATE", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
+		application.addAppEdge("concentration_calculator", "client", 20, 100, "CONCENTRATION", Tuple.DOWN, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
+		application.addAppEdge("coordinator", "client",  30, 500, "GLOBAL_GAME_STATE", Tuple.DOWN, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Connector to Client module carrying tuples of type GLOBAL_GAME_STATE
+		application.addAppEdge("client", "DISPLAY", 100, 500, "SELF_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type SELF_STATE_UPDATE
+		application.addAppEdge("client", "DISPLAY", 100, 500, "GLOBAL_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type GLOBAL_STATE_UPDATE
 		
 		/*
 		 * Defining the input-output relationships (represented by selectivity) of the application modules. 
