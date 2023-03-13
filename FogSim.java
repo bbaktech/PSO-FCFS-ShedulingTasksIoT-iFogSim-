@@ -103,24 +103,37 @@ public class FogSim extends CloudSim {
 			
 			queue_empty = false;		
 			SimEvent first = fit.next();
-			SimEntity ent = entities.get( first.getSource());			
-			if (ent.getName().startsWith("m-V")) {
+			SimEntity entsorce = entities.get( first.getSource());			
+			SimEntity entdest = entities.get( first.getDestination());	
+			
+			if (entsorce.getName().startsWith("m-V")) {
 				processEvent(first);
 				future.remove(first);
-			}			
+			}				
+			if (entdest.getName().startsWith("m-V")) {
+				processEvent(first);
+				future.remove(first);
+			}	
 			
 			fit = future.iterator();	
 			// Check if next events are at same time...
 			boolean trymore = fit.hasNext();
 			while (trymore) {
 				SimEvent next = fit.next();
-				ent = entities.get( next.getSource());				
-				if (next.eventTime() == first.eventTime()) {
-					if (ent.getName().startsWith("m-V")) {
+				entsorce = entities.get( next.getSource());			
+				entdest = entities.get( next.getDestination());	
+
+				if (next.eventTime() == first.eventTime()) {					
+					if (entsorce.getName().startsWith("m-V")) {
 						processEvent(next);
 						toRemove.add(next);
-					} 
+					} else if (entdest.getName().startsWith("m-V")) {
+							processEvent(next);
+							toRemove.add(next);
+					}					
 					trymore = fit.hasNext();
+				
+				
 				} else {
 					trymore = false;
 				}
