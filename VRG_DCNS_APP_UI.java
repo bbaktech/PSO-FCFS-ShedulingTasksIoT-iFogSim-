@@ -439,8 +439,8 @@ public class VRG_DCNS_APP_UI {
 		application.addAppEdge("concentration_calculator", "coordinator", 20, 100, "PLAYER_GAME_STATE", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
 		application.addAppEdge("concentration_calculator", "client", 20, 100, "CONCENTRATION", Tuple.DOWN, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
 		application.addAppEdge("coordinator", "client",  30, 500, "GLOBAL_GAME_STATE", Tuple.DOWN, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Connector to Client module carrying tuples of type GLOBAL_GAME_STATE
-		application.addAppEdge("client", "DISPLAY", 100, 500, "SELF_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type SELF_STATE_UPDATE
-		application.addAppEdge("client", "DISPLAY", 100, 500, "GLOBAL_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type GLOBAL_STATE_UPDATE
+		application.addAppEdge("client", "DISPLAY", 50, 500, "SELF_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type SELF_STATE_UPDATE
+		application.addAppEdge("client", "DISPLAY", 50, 500, "GLOBAL_STATE_UPDATE", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type GLOBAL_STATE_UPDATE
 		
 		/*
 		 * Defining the input-output relationships (represented by selectivity) of the application modules. 
@@ -480,8 +480,8 @@ public class VRG_DCNS_APP_UI {
 		/*
 		 * Connecting the application modules (vertices) in the application model (directed graph) with edges
 		 */
-		application.addAppEdge("CAMERA", "motion_detector", 1000, 500, "CAMERA", Tuple.UP, AppEdge.SENSOR); // adding edge from EEG (sensor) to Client module carrying tuples of type EEG
-		application.addAppEdge("motion_detector", "object_detector", 1000, 500, "_SENSOR_1", Tuple.UP, AppEdge.MODULE); // adding edge from Client to Concentration Calculator module carrying tuples of type _SENSOR
+		application.addAppEdge("CAMERA", "motion_detector", 2000, 500, "CAMERA", Tuple.UP, AppEdge.SENSOR); // adding edge from EEG (sensor) to Client module carrying tuples of type EEG
+		application.addAppEdge("motion_detector", "object_detector", 2000, 500, "_SENSOR_1", Tuple.UP, AppEdge.MODULE); // adding edge from Client to Concentration Calculator module carrying tuples of type _SENSOR
 		application.addAppEdge("object_detector", "object_tracker",  500, 500, "OBJID", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
 		application.addAppEdge("object_tracker", "user_interface", 100, 500, "DISPLAY1", Tuple.UP, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
 		application.addAppEdge("object_tracker", "PTZ_CONTROL", 100, 500, "PTZ_PARAM", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type SELF_STATE_UPDATE
