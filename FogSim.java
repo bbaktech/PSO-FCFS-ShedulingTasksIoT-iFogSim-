@@ -93,6 +93,7 @@ public class FogSim extends CloudSim {
 		// If there are more future events then deal with them
 		return queue_empty;
 	}
+	
 	public static boolean executeHighPriorityTasks (){
 		
 		boolean queue_empty;
