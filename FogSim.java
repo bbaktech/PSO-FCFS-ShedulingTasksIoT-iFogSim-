@@ -110,8 +110,7 @@ public class FogSim extends CloudSim {
 			if (entsorce.getName().startsWith("m-V")) {
 				processEvent(first);
 				future.remove(first);
-			}				
-			if (entdest.getName().startsWith("m-V")) {
+			} else if (entdest.getName().startsWith("m-V")) {
 				processEvent(first);
 				future.remove(first);
 			}	
