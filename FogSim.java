@@ -12,10 +12,11 @@ import org.cloudbus.cloudsim.core.predicates.Predicate;
 
 public class FogSim extends CloudSim {
 	
-    protected static long iteration_count = 0;  //by manju Manju
+    public static long iteration_count = 0;  //by manju Manju
     public static  int SheduleMethod = 0;  // 0->FCFS,1->PS,2->WOA
     
-    
+    protected static void updateClock() {
+    }
 	protected static void update_futureQueByShaduling()
 	{
 		int dest, src;
@@ -62,8 +63,8 @@ public class FogSim extends CloudSim {
 		
 		int entities_size = entities.size();
 		
-//		if (iteration_count< 50) 
-//			System.out.println( "=================Sarted Slot:" + iteration_count); 
+		if (iteration_count< 50) 
+			System.out.println( "=================Sarted Slot:" + iteration_count +" iteration start time:"+ clock()); 
 		
 		for (int i = 0; i < entities_size; i++ ) {
 			ent = entities.get(i);
@@ -72,7 +73,7 @@ public class FogSim extends CloudSim {
 			}
 
 		}		
-		//resourse sheduling WOS
+
 		switch (SheduleMethod) {
 		case 0: //FCFS
 			update_futureQueByShaduling();
@@ -80,13 +81,12 @@ public class FogSim extends CloudSim {
 			break;
 		case 1:
 			update_futureQueByShaduling();
-			queue_empty = executeHighPriorityTasks();
-//			queue_empty= executeLowPriorityTasks();
+			queue_empty = executeAllTasks();
+//			queue_empty = executeHighPriorityTasks();
 			break;			
 		case 2:
 			update_futureQueByShaduling();
-			System.out.println("WO Algorithem Not Ready");
-			System.exit(0);
+			queue_empty = executeAllTasks();
 			break;
 		}
 		
@@ -122,24 +122,26 @@ public class FogSim extends CloudSim {
 				SimEvent next = fit.next();
 				entsorce = entities.get( next.getSource());			
 				entdest = entities.get( next.getDestination());	
-
-				if (next.eventTime() == first.eventTime()) {					
+				if (next.eventTime() == first.eventTime()) {
 					if (entsorce.getName().startsWith("m-V")) {
 						processEvent(next);
 						toRemove.add(next);
+						trymore = fit.hasNext();
 					} else if (entdest.getName().startsWith("m-V")) {
 							processEvent(next);
 							toRemove.add(next);
+							trymore = fit.hasNext();
 					}					
-					trymore = fit.hasNext();
-				
-				
 				} else {
 					trymore = false;
 				}
+				
 			}
 			future.removeAll(toRemove);			
 			toRemove.clear();
+
+			fit = future.iterator();
+			first = fit.next();
 
 			Iterator<SimEvent> fit2 = future.iterator();
 			trymore = fit2.hasNext();
@@ -168,6 +170,7 @@ public class FogSim extends CloudSim {
 		
 		boolean queue_empty;
 		if (future.size() > 0) {
+
 			List<SimEvent> toRemove = new ArrayList<SimEvent>();
 			Iterator<SimEvent> fit = future.iterator();
 			queue_empty = false;
@@ -180,8 +183,10 @@ public class FogSim extends CloudSim {
 			// Check if next events are at same time...
 			boolean trymore = fit.hasNext();
 			while (trymore) {
+
 				SimEvent next = fit.next();
-				if (next.eventTime() == first.eventTime()) {					 
+				//manju have some concern on this if statement 
+				if (next.eventTime() == first.eventTime()) {
 					processEvent(next);
 					toRemove.add(next);
 					trymore = fit.hasNext();
@@ -189,11 +194,14 @@ public class FogSim extends CloudSim {
 					trymore = false;
 				}
 			}
+
 			future.removeAll(toRemove);
+			toRemove.clear();
 		} else {
 			queue_empty = true;
 			running = false;
 		}
+
 		// If there are more future events then deal with them
 		return queue_empty;
 	}
@@ -226,19 +234,7 @@ public class FogSim extends CloudSim {
 				} else {
 					int tag = e.getTag();
 					dest_ent = entities.get(dest);
-					if (dest_ent.getState() == SimEntity.WAITING) {
-						Integer destObj = Integer.valueOf(dest);
-						Predicate p = waitPredicates.get(destObj);
-						if ((p == null) || (tag == 9999) || (p.match(e))) {
-							dest_ent.setEventBuffer((SimEvent) e.clone());
-							dest_ent.setState(SimEntity.RUNNABLE);
-							waitPredicates.remove(destObj);
-						} else {
-							deferred.addEvent(e);
-						}
-					} else {
-						deferred.addEvent(e);
-					}
+					deferred.addEvent(e);
 				}
 				break;
 

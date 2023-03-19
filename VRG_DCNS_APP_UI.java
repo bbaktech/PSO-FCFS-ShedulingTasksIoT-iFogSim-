@@ -124,7 +124,7 @@ public class VRG_DCNS_APP_UI {
    
    public static void RunSimulation() {
 	   
-		Log.printLine("Starting VRLG_DCNS_APPS together...");
+		Log.printLine("Starting VR_Game and DCNS together...");
 
 		try {
 			Log.disable();
@@ -139,8 +139,7 @@ public class VRG_DCNS_APP_UI {
 			
 			FogBroker broker0 = new FogBroker("broker_0");
 			FogBroker broker1 = new FogBroker("broker_1");
-			
-			
+						
 			Application application0 = createApplication0(appId0, broker0.getId());
 			Application application1 = createApplication1(appId1, broker1.getId());
 			application0.setUserId(broker0.getId());
@@ -149,7 +148,7 @@ public class VRG_DCNS_APP_UI {
 			createIoTNetworktopology();			
 			createEdgeDevicesVRG(broker0.getId(), appId0);
 			createEdgeDevicesDCNS(broker1.getId(), appId1);
-/*			
+			
 			System.out.println("==Devices==");
 			for(FogDevice device : fogDevices) {
 				System.out.println(device.getName() +" (" + device.getHost().getTotalMips() + ")");				
@@ -166,10 +165,10 @@ public class VRG_DCNS_APP_UI {
 			for(Actuator device : actuators) {
 				System.out.println(device.getName());				
 			}
-*/						
+						
 			ModuleMapping moduleMapping_0 = ModuleMapping.createModuleMapping(); // initializing a module mapping
 			ModuleMapping moduleMapping_1 = ModuleMapping.createModuleMapping(); // initializing a module mapping
-			
+/*				
 			moduleMapping_0.addModuleToDevice("coordinator", "cloud"); // fixing all instances of the coordinator module to the Cloud
 			moduleMapping_1.addModuleToDevice("user_interface", "cloud"); // fixing all instances of the user_interface module to the Cloud
 
@@ -181,20 +180,21 @@ public class VRG_DCNS_APP_UI {
 					moduleMapping_1.addModuleToDevice("motion_detector", device.getName());  
 				}
 				if(device.getName().startsWith("d")){
-				moduleMapping_0.addModuleToDevice("concentration_calculator", device.getName()); // fixing all instances of the Concentration Calculator module to the FogDevices
-				moduleMapping_1.addModuleToDevice("object_detector", device.getName()); // placing all instances of Object Detector module in the FogDevices
-				moduleMapping_1.addModuleToDevice("object_tracker", device.getName()); // placing all instances of Object Tracker module in the FogDevices
+					moduleMapping_0.addModuleToDevice("concentration_calculator", device.getName()); // fixing all instances of the Concentration Calculator module to the FogDevices
+					moduleMapping_1.addModuleToDevice("object_detector", device.getName()); // placing all instances of Object Detector module in the FogDevices
+					moduleMapping_1.addModuleToDevice("object_tracker", device.getName()); // placing all instances of Object Tracker module in the FogDevices
 				}
 			}
+*/
 			//this class has last part to display summary - simulation results.
 			Controller controller = new Controller("master-controller", fogDevices, sensors, 
 					actuators);
-			
-			System.out.println("==App0==");
-			controller.submitApplication(application0, new ModulePlacementMapping(fogDevices, application0, moduleMapping_0));
-			System.out.println("==App1==");		
-			controller.submitApplication(application1, new ModulePlacementMapping(fogDevices, application1, moduleMapping_1));
 
+			System.out.println("==App0==");
+			controller.submitApplication(application0, new ModulePlacementMappingAp0(fogDevices,sensors, actuators,application0, moduleMapping_0));
+			System.out.println("==App1==");		
+			controller.submitApplication(application1, new ModulePlacementMappingAp1(fogDevices,sensors, actuators,application1, moduleMapping_1));
+			
 			TimeKeeper.getInstance().setSimulationStartTime(Calendar.getInstance().getTimeInMillis());
 
 			FogSim.startSimulation();
@@ -207,7 +207,6 @@ public class VRG_DCNS_APP_UI {
 			Log.printLine("Unwanted errors happen");
 		}
 	}   
-   
    
    
 	private static void createEdgeDevicesVRG(int userId, String appId) {
@@ -445,7 +444,7 @@ public class VRG_DCNS_APP_UI {
 		/*
 		 * Defining the input-output relationships (represented by selectivity) of the application modules. 
 		 */
-		application.addTupleMapping("client", "EEG", "_SENSOR", new FractionalSelectivity(0.9)); // 0.9 tuples of type _SENSOR are emitted by Client module per incoming tuple of type EEG 
+		application.addTupleMapping("client", "EEG", "_SENSOR", new FractionalSelectivity(1.0)); // 0.9 tuples of type _SENSOR are emitted by Client module per incoming tuple of type EEG 
 		application.addTupleMapping("client", "CONCENTRATION", "SELF_STATE_UPDATE", new FractionalSelectivity(1.0)); // 1.0 tuples of type SELF_STATE_UPDATE are emitted by Client module per incoming tuple of type CONCENTRATION 
 		application.addTupleMapping("client", "GLOBAL_GAME_STATE", "GLOBAL_STATE_UPDATE", new FractionalSelectivity(1.0)); // 1.0 tuples of type GLOBAL_STATE_UPDATE are emitted by Client module per incoming tuple of type GLOBAL_GAME_STATE 
 
@@ -473,23 +472,23 @@ public class VRG_DCNS_APP_UI {
 		/*
 		 * Adding modules (vertices) to the application model (directed graph)
 		 */
-		application.addAppModule("user_interface", 10); 
+		application.addAppModule("motion_detector", 10); 	
 		application.addAppModule("object_detector", 10); 
 		application.addAppModule("object_tracker", 10); 
-		application.addAppModule("motion_detector", 10); 	
+		application.addAppModule("user_interface", 10); 
 		/*
 		 * Connecting the application modules (vertices) in the application model (directed graph) with edges
 		 */
 		application.addAppEdge("CAMERA", "motion_detector", 2000, 500, "CAMERA", Tuple.UP, AppEdge.SENSOR); // adding edge from EEG (sensor) to Client module carrying tuples of type EEG
 		application.addAppEdge("motion_detector", "object_detector", 2000, 500, "_SENSOR_1", Tuple.UP, AppEdge.MODULE); // adding edge from Client to Concentration Calculator module carrying tuples of type _SENSOR
 		application.addAppEdge("object_detector", "object_tracker",  500, 500, "OBJID", Tuple.UP, AppEdge.MODULE); // adding periodic edge (period=1000ms) from Concentration Calculator to Connector module carrying tuples of type PLAYER_GAME_STATE
-		application.addAppEdge("object_tracker", "user_interface", 100, 500, "DISPLAY1", Tuple.UP, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
+		application.addAppEdge("object_detector", "user_interface", 100, 500, "DISPLAY1", Tuple.UP, AppEdge.MODULE);  // adding edge from Concentration Calculator to Client module carrying tuples of type CONCENTRATION
 		application.addAppEdge("object_tracker", "PTZ_CONTROL", 100, 500, "PTZ_PARAM", Tuple.DOWN, AppEdge.ACTUATOR);  // adding edge from Client module to Display (actuator) carrying tuples of type SELF_STATE_UPDATE
 		
 		/*
 		 * Defining the input-output relationships (represented by selectivity) of the application modules. 
 		 */
-		application.addTupleMapping("motion_detector", "CAMERA", "_SENSOR_1", new FractionalSelectivity(0.9)); // 0.9 tuples of type _SENSOR are emitted by Client module per incoming tuple of type EEG 
+		application.addTupleMapping("motion_detector", "CAMERA", "_SENSOR_1", new FractionalSelectivity(1.0)); // 0.9 tuples of type _SENSOR are emitted by Client module per incoming tuple of type EEG 
 		application.addTupleMapping("object_detector", "_SENSOR_1", "OBJID", new FractionalSelectivity(1.0)); // 1.0 tuples of type SELF_STATE_UPDATE are emitted by Client module per incoming tuple of type CONCENTRATION 
 		application.addTupleMapping("object_tracker", "OBJID", "PTZ_PARAM", new FractionalSelectivity(1.0)); // 1.0 tuples of type CONCENTRATION are emitted by Concentration Calculator module per incoming tuple of type _SENSOR 
 		application.addTupleMapping("user_interface", "OBJID", "GLOBAL_DISPLY", new FractionalSelectivity(1.0)); // 1.0 tuples of type GLOBAL_STATE_UPDATE are emitted by Client module per incoming tuple of type GLOBAL_GAME_STATE 
